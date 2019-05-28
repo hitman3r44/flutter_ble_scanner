@@ -44,8 +44,8 @@ class AppDatabaseHelper {
     _populateDb(db, newVersion);
   }
 
-  Future<String> saveDevice(ScanResult result, String name, String password) async {
-    var id = "${result.device.id.toString()}";
+  Future<String> saveDevice(BluetoothDevice device, String name, String password) async {
+    var id = "${device.id.toString()}";
     Database database = await db;
     var list = await database.rawQuery("SELECT * FROM BluetoothDevice WHERE name = '$name' OR id='$id'");
 
@@ -81,9 +81,9 @@ class AppDatabaseHelper {
     });
   }
 
-  Future<String> removeResult(ScanResult result) async {
+  Future<String> removeResult(BluetoothDevice device) async {
     var dbClient = await db;
-    var id = "${result.device.id.toString()}";
+    var id = "${device.id.toString()}";
 
     var res = await dbClient
         .rawDelete('DELETE FROM BluetoothDevice WHERE id = ?', [id]);
@@ -95,8 +95,8 @@ class AppDatabaseHelper {
     }
   }
 
-  Future<String> updateDevice(ScanResult result, String name, String password) async {
-    var id = "${result.device.id.toString()}";
+  Future<String> updateDevice(BluetoothDevice device, String name, String password) async {
+    var id = "${device.id.toString()}";
     Database database = await db;
     var list = await database.rawQuery("SELECT * FROM BluetoothDevice WHERE name = '$name'");
     var passwordList = await database.rawQuery("SELECT * FROM BluetoothDevice WHERE id = '$id' AND password = '$password'");
