@@ -45,7 +45,7 @@ class AppDatabaseHelper {
   }
 
   Future<String> saveDevice(ScanResult result, String name, String password) async {
-    var id = "${result.device.id.toString()}-$name";
+    var id = "${result.device.id.toString()}";
     Database database = await db;
     var list = await database.rawQuery("SELECT * FROM BluetoothDevice WHERE name = '$name' OR id='$id'");
 
@@ -73,12 +73,57 @@ class AppDatabaseHelper {
 
     return Future(() {
       return list.map((keyValue) {
-        var id = keyValue['id'].toString().split("-")[0];
-        var name = keyValue['id'].toString().split("-")[1];
+        var id = keyValue['id'];
+        var name = keyValue['name'];
 
         return DeviceContainer(name, id);
       }).toList();
     });
+  }
+
+  Future<String> removeResult(ScanResult result) async {
+    var dbClient = await db;
+    var id = "${result.device.id.toString()}";
+
+    var res = await dbClient
+        .rawDelete('DELETE FROM BluetoothDevice WHERE id = ?', [id]);
+
+    if (res > 0) {
+      return Future(() => "Successfully deleted");
+    } else {
+      return Future(() => "Error: Something went wrong");
+    }
+  }
+
+  Future<String> updateDevice(ScanResult result, String name, String password) async {
+    var id = "${result.device.id.toString()}";
+    Database database = await db;
+    var list = await database.rawQuery("SELECT * FROM BluetoothDevice WHERE name = '$name'");
+    var passwordList = await database.rawQuery("SELECT * FROM BluetoothDevice WHERE id = '$id' AND password = '$password'");
+
+    if (list.isNotEmpty) {
+      return Future(() => "Error: Name already given to another device");
+    } else if (passwordList.isEmpty) {
+      return Future(() => "Error: Password for device does not match");
+    }
+
+    Map<String, String> map = Map();
+    map['id'] = id;
+    map['name'] = name;
+    map['password'] = password;
+
+    var res = await database.update(
+        "BluetoothDevice",
+        map,
+        where: "id = ?",
+        whereArgs: <String>[id]
+    );
+
+    if (res > 0) {
+      return Future(() => "Successfully updated");
+    } else {
+      return Future(() => "Error: Something went wrong");
+    }
   }
 }
 

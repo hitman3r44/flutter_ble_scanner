@@ -7,12 +7,13 @@ import 'ble.dart';
 import 'db.dart';
 
 class ScanResultTile extends StatelessWidget {
-  const ScanResultTile({Key key, this.result, this.devices, this.onTap, this.refresh}) : super(key: key);
+  ScanResultTile({Key key, this.result, this.devices, this.onTap, this.refresh}) : super(key: key);
 
   final ScanResult result;
   final VoidCallback onTap;
   final VoidCallback refresh;
   final List<DeviceContainer> devices;
+  var _isPresent;
 
   String _getTitle() {
 
@@ -21,6 +22,14 @@ class ScanResultTile extends StatelessWidget {
             (container) => container.id == result.device.id.toString());
 
     return index >= 0? devices[index].name : null;
+  }
+
+  bool _isUpdatable() {
+    _isPresent = devices
+        .indexWhere(
+            (container) => container.id == result.device.id.toString()) >= 0;
+
+    return _isPresent;
   }
 
   Widget _buildTitle(BuildContext context) {
@@ -112,6 +121,25 @@ class ScanResultTile extends StatelessWidget {
               title: Text("Save Custom Name"),
               content: CreateDialogBody(nameController, passwordController, passwordValidateController),
               actions: <Widget>[
+                if (_isUpdatable())
+                  FlatButton(
+                    child: const Text('DELETE'),
+                    onPressed: () async {
+                      var helper = AppDatabaseHelper();
+                      var msg = await helper.removeResult(result);
+
+                      scaffoldKey.currentState.showSnackBar(SnackBar(content: Text(msg), duration: Duration(seconds: 5),));
+
+                      Timer(Duration(seconds: 5), () {
+                        scaffoldKey.currentState.removeCurrentSnackBar();
+                      });
+
+                      refresh();
+
+                      Navigator.of(_).pop();
+                    },
+                  )
+                ,
                 FlatButton(
                   child: const Text('ACCEPT'),
                   onPressed: () async {
@@ -134,7 +162,13 @@ class ScanResultTile extends StatelessWidget {
                       return;
                     }
 
-                    var msg = await helper.saveDevice(result, nameController.text, passwordController.text);
+                    var msg;
+                    if (!_isUpdatable()) {
+                      msg = await helper.saveDevice(result, nameController.text, passwordController.text);
+                    } else {
+                      msg = await helper.updateDevice(result, nameController.text, passwordController.text);
+                    }
+
                     scaffoldKey.currentState.showSnackBar(SnackBar(content: Text(msg), duration: Duration(seconds: 5),));
 
                     Timer(Duration(seconds: 5), () {
