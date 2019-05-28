@@ -106,18 +106,27 @@ class ScanResultTile extends StatelessWidget {
 
             var nameController = TextEditingController();
             var passwordController = TextEditingController();
+            var passwordValidateController = TextEditingController();
 
             return AlertDialog(
               title: Text("Save Custom Name"),
-              content: DialogBody(nameController, passwordController),
+              content: CreateDialogBody(nameController, passwordController, passwordValidateController),
               actions: <Widget>[
                 FlatButton(
                   child: const Text('ACCEPT'),
                   onPressed: () async {
                     var helper = AppDatabaseHelper();
-                    if (nameController.text.isEmpty || passwordController.text.isEmpty) {
+                    if (nameController.text.isEmpty || passwordController.text.isEmpty || passwordValidateController.text.isEmpty) {
                       scaffoldKey.currentState.showSnackBar(SnackBar(duration: Duration(milliseconds: 5),
-                          content: Text("Both name and password are required")));
+                          content: Text("All fields are required")));
+                      Timer(Duration(seconds: 5), () {
+                        scaffoldKey.currentState.removeCurrentSnackBar();
+                      });
+
+                      return;
+                    } else if (passwordController.text != passwordValidateController.text) {
+                      scaffoldKey.currentState.showSnackBar(SnackBar(duration: Duration(milliseconds: 5),
+                          content: Text("Password fields do not match")));
                       Timer(Duration(seconds: 5), () {
                         scaffoldKey.currentState.removeCurrentSnackBar();
                       });
@@ -163,11 +172,12 @@ class ScanResultTile extends StatelessWidget {
   }
 }
 
-class DialogBody extends StatelessWidget {
+class CreateDialogBody extends StatelessWidget {
   TextEditingController nameController;
   TextEditingController passwordController;
+  TextEditingController passwordValidateController;
 
-  DialogBody(this.nameController, this.passwordController);
+  CreateDialogBody(this.nameController, this.passwordController, this.passwordValidateController);
 
   @override
   Widget build(BuildContext context) {
@@ -179,8 +189,14 @@ class DialogBody extends StatelessWidget {
             decoration: InputDecoration(hintText: "Custom name for device")
         ),
         TextField(
+            obscureText: true,
             controller: passwordController,
             decoration: InputDecoration(hintText: "Password for device")
+        ),
+        TextField(
+            obscureText: true,
+            controller: passwordValidateController,
+            decoration: InputDecoration(hintText: "Re-enter password")
         )
       ],
     );
