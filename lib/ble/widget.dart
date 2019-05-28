@@ -1,26 +1,44 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_blue/flutter_blue.dart';
 
+import 'ble.dart';
+import 'db.dart';
+
 class ScanResultTile extends StatelessWidget {
-  const ScanResultTile({Key key, this.result, this.onTap}) : super(key: key);
+  const ScanResultTile({Key key, this.result, this.devices, this.onTap, this.refresh}) : super(key: key);
 
   final ScanResult result;
   final VoidCallback onTap;
+  final VoidCallback refresh;
+  final List<DeviceContainer> devices;
+
+  String _getTitle() {
+
+    var index = devices
+        .indexWhere(
+            (container) => container.id == result.device.id.toString());
+
+    return index >= 0? devices[index].name : null;
+  }
 
   Widget _buildTitle(BuildContext context) {
+    var customName = _getTitle();
+
     if (result.device.name.length > 0) {
       return Column(
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(result.device.name),
+          Text(customName ?? result.device.name),
           Text(result.device.id.toString(),
             style: Theme.of(context).textTheme.caption,
           )
         ],
       );
     } else {
-      return Text(result.device.id.toString());
+      return Text(customName ?? result.device.id.toString());
     }
   }
 
@@ -80,25 +98,95 @@ class ScanResultTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ExpansionTile(
-      title: _buildTitle(context),
-      leading: Text(result.rssi.toString()),
-      trailing: RaisedButton(
-        child: Text('CONNECT'),
-        color: Colors.black,
-        textColor: Colors.white,
-        onPressed: (result.advertisementData.connectable) ? onTap : null,
+    return GestureDetector(
+      onLongPress: () {
+        showDialog(
+          context: context,
+          builder: (BuildContext _) {
+
+            var nameController = TextEditingController();
+            var passwordController = TextEditingController();
+
+            return AlertDialog(
+              title: Text("Save Custom Name"),
+              content: DialogBody(nameController, passwordController),
+              actions: <Widget>[
+                FlatButton(
+                  child: const Text('ACCEPT'),
+                  onPressed: () async {
+                    var helper = AppDatabaseHelper();
+                    if (nameController.text.isEmpty || passwordController.text.isEmpty) {
+                      scaffoldKey.currentState.showSnackBar(SnackBar(duration: Duration(milliseconds: 5),
+                          content: Text("Both name and password are required")));
+                      Timer(Duration(seconds: 5), () {
+                        scaffoldKey.currentState.removeCurrentSnackBar();
+                      });
+
+                      return;
+                    }
+
+                    var msg = await helper.saveDevice(result, nameController.text, passwordController.text);
+                    scaffoldKey.currentState.showSnackBar(SnackBar(content: Text(msg), duration: Duration(seconds: 5),));
+
+                    Timer(Duration(seconds: 5), () {
+                      scaffoldKey.currentState.removeCurrentSnackBar();
+                    });
+                    refresh();
+                    if (!msg.contains("Error")) {
+                      Navigator.of(_).pop();
+                    }
+                  }
+                )
+              ],
+            );
+          }
+        );
+      },
+      child: ExpansionTile(
+        title: _buildTitle(context),
+        leading: Text(result.rssi.toString()),
+        trailing: RaisedButton(
+          child: Text('CONNECT'),
+          color: Colors.black,
+          textColor: Colors.white,
+          onPressed: (result.advertisementData.connectable) ? onTap : null,
+        ),
+        children: <Widget>[
+          _buildAdvRow(context, 'Complete Local Name', result.advertisementData.localName ?? 'N/A'),
+          _buildAdvRow(context, 'Tx Power Level','${result.advertisementData.txPowerLevel ?? 'N/A'}'),
+          _buildAdvRow(context,'Manufacturer Data',getNiceManufacturerData(result.advertisementData.manufacturerData) ?? 'N/A'),
+          _buildAdvRow(context,'Service UUIDs',(result.advertisementData.serviceUuids.isNotEmpty) ? result.advertisementData.serviceUuids.join(', ').toUpperCase() : 'N/A'),
+          _buildAdvRow(context, 'Service Data',getNiceServiceData(result.advertisementData.serviceData) ?? 'N/A'),
+        ],
       ),
+    );
+  }
+}
+
+class DialogBody extends StatelessWidget {
+  TextEditingController nameController;
+  TextEditingController passwordController;
+
+  DialogBody(this.nameController, this.passwordController);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        _buildAdvRow(context, 'Complete Local Name', result.advertisementData.localName ?? 'N/A'),
-        _buildAdvRow(context, 'Tx Power Level','${result.advertisementData.txPowerLevel ?? 'N/A'}'),
-        _buildAdvRow(context,'Manufacturer Data',getNiceManufacturerData(result.advertisementData.manufacturerData) ?? 'N/A'),
-        _buildAdvRow(context,'Service UUIDs',(result.advertisementData.serviceUuids.isNotEmpty) ? result.advertisementData.serviceUuids.join(', ').toUpperCase() : 'N/A'),
-        _buildAdvRow(context, 'Service Data',getNiceServiceData(result.advertisementData.serviceData) ?? 'N/A'),
+        TextField(
+            controller: nameController,
+            decoration: InputDecoration(hintText: "Custom name for device")
+        ),
+        TextField(
+            controller: passwordController,
+            decoration: InputDecoration(hintText: "Password for device")
+        )
       ],
     );
   }
 }
+
 
 class ServiceTile extends StatelessWidget {
   final BluetoothService service;
