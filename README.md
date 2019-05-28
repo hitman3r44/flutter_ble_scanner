@@ -46,6 +46,68 @@ to "EDIT"
 
 [WRITE DOWN ALL THE COMMANDS AND INSTRUCTION TO BUILD PRODUCTION APP]
 
+Review the default App Manifest file AndroidManifest.xml located in <app dir>/android/app/src/main and verify the values are correct, especially:
+
+- `application:` Edit the android:label in the application tag to reflect the final name of the app.
+
+- `uses-permission:` Remove the android.permission.INTERNET permission if your application code does not need Internet access. The standard template includes this tag to enable communication between Flutter tools and a running app.
+
+
+Review the default Gradle build file file build.gradle located in <app dir>/android/app and verify the values are correct, especially:
+
+- defaultConfig:
+
+   - `applicationId:` Specify the final, unique (Application Id)appid
+
+   - `versionCode & versionName:` Specify the internal app version number, and the version number display string. You can do this by setting the version property in the pubspec.yaml file. Consult the version information guidance in the versions documentation.
+
+   - `minSdkVersion & targetSdkVersion:` Specify the minimum API level, and the API level on which the app is designed to run. Consult the API level section in the versions documentation for details.
+
+
+To publish on the Play store, you need to give your app a digital signature. Use the following instructions to sign your app.
+
+
+If you have an existing keystore, skip to the next step. If not, create one by running the following at the command line: keytool -genkey -v -keystore ~/key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias key
+
+Note: Keep this file private; do not check it into public source control.
+
+Note: keytool might not be in your path. It is part of the Java JDK, which is installed as part of Android Studio. For the concrete path, run flutter doctor -v and see the path printed after ‘Java binary at:’, and then use that fully qualified path replacing java with keytool.
+
+
+Create a file named <app dir>/android/key.properties that contains a reference to your keystore:
+```
+storePassword=<password from previous step>
+keyPassword=<password from previous step>
+keyAlias=key
+storeFile=<location of the key store file, e.g. /Users/<user name>/key.jks>
+``` 
+
+[Configure Gradle for Signing](https://flutter.dev/docs/deployment/android#configure-signing-in-gradle)
+
+
+This section describes how to build a release APK. If you completed the signing steps in the previous section, the release APK will be signed.
+
+Using the command line:
+
+1. cd <app dir> (replace <app dir> with your application’s directory).
+2. Run flutter build apk (flutter build defaults to --release).
+The release APK for your app is created at <app dir>/build/app/outputs/apk/release/app-release.apk.
+
+
+Follow these steps to install the APK built in the previous step on a connected Android device.
+
+Using the command line:
+
+1. Connect your Android device to your computer with a USB cable.
+2. cd <app dir> where <app dir> is your application directory.
+3. Run flutter install .
+
+For detailed instructions on publishing the release version of an app to the Google Play Store, 
+see the [Google Play publishing documentation](https://developer.android.com/distribute/best-practices/launch).
+
+
+
+
 ## Important Command
 
 ```bash
