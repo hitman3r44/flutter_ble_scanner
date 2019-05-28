@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_blue/flutter_blue.dart';
+import 'db.dart';
 import 'widget.dart';
+final GlobalKey<ScaffoldState> scaffoldKey = new GlobalKey<ScaffoldState>();
 
 void main() {
   runApp(new FlutterBlueApp());
@@ -37,11 +39,18 @@ class _FlutterBlueAppState extends State<FlutterBlueApp> {
   List<BluetoothService> services = new List();
   Map<Guid, StreamSubscription> valueChangedSubscriptions = {};
   BluetoothDeviceState deviceState = BluetoothDeviceState.disconnected;
+  List<DeviceContainer> deviceContainers = List();
+  AppDatabaseHelper _helper;
 
   @override
   void initState() {
     super.initState();
     // Immediately get the state of FlutterBlue
+    _helper = AppDatabaseHelper();
+    _helper.getAllDevices().then((devices) {
+      deviceContainers = devices ?? List();
+    });
+
     _flutterBlue.state.then((s) {
       setState(() {
         state = s;
@@ -66,7 +75,7 @@ class _FlutterBlueAppState extends State<FlutterBlueApp> {
     super.dispose();
   }
 
-  _startScan() {
+  _startScan() async {
     _scanSubscription = _flutterBlue.scan(
       timeout: const Duration(seconds: 5),
       /*
@@ -91,6 +100,7 @@ class _FlutterBlueAppState extends State<FlutterBlueApp> {
   _stopScan() {
     _scanSubscription?.cancel();
     _scanSubscription = null;
+    //TODO: Modify here for list cute name
     setState(() {
       isScanning = false;
     });
@@ -208,7 +218,18 @@ class _FlutterBlueAppState extends State<FlutterBlueApp> {
   _buildScanResultTiles() {
     return scanResults.values.map((r) => ScanResultTile(
       result: r,
-      onTap: () => _connect(r.device),
+      devices: deviceContainers,
+      refresh: () async {
+        var dc = await _helper.getAllDevices();
+
+        setState(() {
+          deviceContainers = dc;
+        });
+      },
+      onTap: () {
+
+        return _connect(r.device);
+      },
     )).toList();
   }
 
@@ -286,6 +307,7 @@ class _FlutterBlueAppState extends State<FlutterBlueApp> {
     return new LinearProgressIndicator();
   }
 
+
   @override
   Widget build(BuildContext context) {
     var tiles = new List<Widget>();
@@ -300,6 +322,7 @@ class _FlutterBlueAppState extends State<FlutterBlueApp> {
     }
     return new MaterialApp(
       home: new Scaffold(
+        key: scaffoldKey,
         appBar: new AppBar(
           title: const Text('BLE Apllication'),
           actions: _buildActionButtons(),
