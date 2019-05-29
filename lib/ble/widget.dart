@@ -524,3 +524,51 @@ class DescriptorTile extends StatelessWidget {
     );
   }
 }
+
+class CircularToggleButton extends StatefulWidget {
+  String _text;
+  Color _toggleColor;
+  VoidCallback _optionalCallback;
+
+  CircularToggleButton(this._text, this._toggleColor, this._optionalCallback);
+
+  @override
+  _CircularToggleButtonState createState() => _CircularToggleButtonState(_text, _toggleColor, _optionalCallback);
+}
+
+class _CircularToggleButtonState extends State<CircularToggleButton> {
+  String _text;
+  Color _toggleColor;
+  VoidCallback _optionalCallback;
+
+  bool _isToggledOn;
+  final Color _defaultColor = Colors.white;
+
+  _CircularToggleButtonState(this._text, this._toggleColor,
+      this._optionalCallback);
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+        child: GestureDetector(
+          onTap: () {
+            if (_optionalCallback != null) {
+              _optionalCallback();
+            }
+
+            setState(() {
+              _isToggledOn = !_isToggledOn;
+            });
+          },
+          child: ClipOval(
+            child: Container(
+              color: _isToggledOn ? _toggleColor : _defaultColor,
+              height: 120.0, // height of the button
+              width: 120.0, // width of the button
+              child: Center(child: Text(_text)),
+            ),
+          ),
+    ));
+  }
+}
+
