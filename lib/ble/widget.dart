@@ -525,6 +525,54 @@ class DescriptorTile extends StatelessWidget {
   }
 }
 
+class PasswordScreen extends StatefulWidget {
+  @override
+  _PasswordScreenState createState() => _PasswordScreenState();
+}
+
+class _PasswordScreenState extends State<PasswordScreen> {
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          TextField(
+            decoration: new InputDecoration.collapsed(
+                hintText: 'Custom Name'
+            ),
+          ),
+          TextField(
+            obscureText: true,
+            decoration: new InputDecoration.collapsed(
+                hintText: 'Password'
+            ),
+          ),
+          TextField(
+            obscureText: true,
+            decoration: new InputDecoration.collapsed(
+                hintText: 'Re-enter Password'
+            ),
+          ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              RaisedButton(
+                child: new Text("DELETE"),
+
+              ),
+              RaisedButton(
+                child: new Text("SUBMIT"),
+              )
+            ],
+          )
+        ]
+      ),
+    );
+  }
+}
+
+
 class CircularToggleButton extends StatefulWidget {
   String _text;
   Color _toggleColor;
