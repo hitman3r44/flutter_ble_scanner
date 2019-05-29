@@ -7,7 +7,8 @@ import 'ble.dart';
 import 'db.dart';
 
 class ScanResultTile extends StatelessWidget {
-  ScanResultTile({Key key, this.result, this.devices, this.onTap, this.refresh}) : super(key: key);
+  ScanResultTile({Key key, this.result, this.devices, this.onTap, this.refresh})
+      : super(key: key);
 
   final ScanResult result;
   final VoidCallback onTap;
@@ -16,18 +17,16 @@ class ScanResultTile extends StatelessWidget {
   var _isPresent;
 
   String _getTitle() {
-
     var index = devices
-        .indexWhere(
-            (container) => container.id == result.device.id.toString());
+        .indexWhere((container) => container.id == result.device.id.toString());
 
-    return index >= 0? devices[index].name : null;
+    return index >= 0 ? devices[index].name : null;
   }
 
   bool _isUpdatable() {
-    _isPresent = devices
-        .indexWhere(
-            (container) => container.id == result.device.id.toString()) >= 0;
+    _isPresent = devices.indexWhere(
+            (container) => container.id == result.device.id.toString()) >=
+        0;
 
     return _isPresent;
   }
@@ -41,7 +40,8 @@ class ScanResultTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(customName ?? result.device.name),
-          Text(result.device.id.toString(),
+          Text(
+            result.device.id.toString(),
             style: Theme.of(context).textTheme.caption,
           )
         ],
@@ -110,80 +110,90 @@ class ScanResultTile extends StatelessWidget {
     return GestureDetector(
       onLongPress: () {
         showDialog(
-          context: context,
-          builder: (BuildContext _) {
+            context: context,
+            builder: (BuildContext _) {
+              var nameController = TextEditingController();
+              var passwordController = TextEditingController();
+              var passwordValidateController = TextEditingController();
 
-            var nameController = TextEditingController();
-            var passwordController = TextEditingController();
-            var passwordValidateController = TextEditingController();
+              return AlertDialog(
+                title: Text("Save Custom Name"),
+                content: CreateDialogBody(nameController, passwordController,
+                    passwordValidateController),
+                actions: <Widget>[
+                  if (_isUpdatable())
+                    FlatButton(
+                      child: const Text('DELETE'),
+                      onPressed: () async {
+                        var helper = AppDatabaseHelper();
+                        var msg = await helper.removeResult(result.device);
 
-            return AlertDialog(
-              title: Text("Save Custom Name"),
-              content: CreateDialogBody(nameController, passwordController, passwordValidateController),
-              actions: <Widget>[
-                if (_isUpdatable())
+                        scaffoldKey.currentState.showSnackBar(SnackBar(
+                          content: Text(msg),
+                          duration: Duration(seconds: 5),
+                        ));
+
+                        Timer(Duration(seconds: 5), () {
+                          scaffoldKey.currentState.removeCurrentSnackBar();
+                        });
+
+                        refresh();
+
+                        Navigator.of(_).pop();
+                      },
+                    ),
                   FlatButton(
-                    child: const Text('DELETE'),
-                    onPressed: () async {
-                      var helper = AppDatabaseHelper();
-                      var msg = await helper.removeResult(result);
+                      child: const Text('ACCEPT'),
+                      onPressed: () async {
+                        var helper = AppDatabaseHelper();
+                        if (nameController.text.isEmpty ||
+                            passwordController.text.isEmpty ||
+                            passwordValidateController.text.isEmpty) {
+                          scaffoldKey.currentState.showSnackBar(SnackBar(
+                              duration: Duration(milliseconds: 5),
+                              content: Text("All fields are required")));
+                          Timer(Duration(seconds: 5), () {
+                            scaffoldKey.currentState.removeCurrentSnackBar();
+                          });
 
-                      scaffoldKey.currentState.showSnackBar(SnackBar(content: Text(msg), duration: Duration(seconds: 5),));
+                          return;
+                        } else if (passwordController.text !=
+                            passwordValidateController.text) {
+                          scaffoldKey.currentState.showSnackBar(SnackBar(
+                              duration: Duration(milliseconds: 5),
+                              content: Text("Password fields do not match")));
+                          Timer(Duration(seconds: 5), () {
+                            scaffoldKey.currentState.removeCurrentSnackBar();
+                          });
 
-                      Timer(Duration(seconds: 5), () {
-                        scaffoldKey.currentState.removeCurrentSnackBar();
-                      });
+                          return;
+                        }
 
-                      refresh();
+                        var msg;
+                        if (!_isUpdatable()) {
+                          msg = await helper.saveDevice(result.device,
+                              nameController.text, passwordController.text);
+                        } else {
+                          msg = await helper.updateDevice(result.device,
+                              nameController.text, passwordController.text);
+                        }
 
-                      Navigator.of(_).pop();
-                    },
-                  )
-                ,
-                FlatButton(
-                  child: const Text('ACCEPT'),
-                  onPressed: () async {
-                    var helper = AppDatabaseHelper();
-                    if (nameController.text.isEmpty || passwordController.text.isEmpty || passwordValidateController.text.isEmpty) {
-                      scaffoldKey.currentState.showSnackBar(SnackBar(duration: Duration(milliseconds: 5),
-                          content: Text("All fields are required")));
-                      Timer(Duration(seconds: 5), () {
-                        scaffoldKey.currentState.removeCurrentSnackBar();
-                      });
+                        scaffoldKey.currentState.showSnackBar(SnackBar(
+                          content: Text(msg),
+                          duration: Duration(seconds: 5),
+                        ));
 
-                      return;
-                    } else if (passwordController.text != passwordValidateController.text) {
-                      scaffoldKey.currentState.showSnackBar(SnackBar(duration: Duration(milliseconds: 5),
-                          content: Text("Password fields do not match")));
-                      Timer(Duration(seconds: 5), () {
-                        scaffoldKey.currentState.removeCurrentSnackBar();
-                      });
-
-                      return;
-                    }
-
-                    var msg;
-                    if (!_isUpdatable()) {
-                      msg = await helper.saveDevice(result, nameController.text, passwordController.text);
-                    } else {
-                      msg = await helper.updateDevice(result, nameController.text, passwordController.text);
-                    }
-
-                    scaffoldKey.currentState.showSnackBar(SnackBar(content: Text(msg), duration: Duration(seconds: 5),));
-
-                    Timer(Duration(seconds: 5), () {
-                      scaffoldKey.currentState.removeCurrentSnackBar();
-                    });
-                    refresh();
-                    if (!msg.contains("Error")) {
-                      Navigator.of(_).pop();
-                    }
-                  }
-                )
-              ],
-            );
-          }
-        );
+                        Timer(Duration(seconds: 5), () {
+                          scaffoldKey.currentState.removeCurrentSnackBar();
+                        });
+                        refresh();
+                        if (!msg.contains("Error")) {
+                          Navigator.of(_).pop();
+                        }
+                      })
+                ],
+              );
+            });
       },
       child: ExpansionTile(
         title: _buildTitle(context),
@@ -195,11 +205,29 @@ class ScanResultTile extends StatelessWidget {
           onPressed: (result.advertisementData.connectable) ? onTap : null,
         ),
         children: <Widget>[
-          _buildAdvRow(context, 'Complete Local Name', result.advertisementData.localName ?? 'N/A'),
-          _buildAdvRow(context, 'Tx Power Level','${result.advertisementData.txPowerLevel ?? 'N/A'}'),
-          _buildAdvRow(context,'Manufacturer Data',getNiceManufacturerData(result.advertisementData.manufacturerData) ?? 'N/A'),
-          _buildAdvRow(context,'Service UUIDs',(result.advertisementData.serviceUuids.isNotEmpty) ? result.advertisementData.serviceUuids.join(', ').toUpperCase() : 'N/A'),
-          _buildAdvRow(context, 'Service Data',getNiceServiceData(result.advertisementData.serviceData) ?? 'N/A'),
+          _buildAdvRow(context, 'Complete Local Name',
+              result.advertisementData.localName ?? 'N/A'),
+          _buildAdvRow(context, 'Tx Power Level',
+              '${result.advertisementData.txPowerLevel ?? 'N/A'}'),
+          _buildAdvRow(
+              context,
+              'Manufacturer Data',
+              getNiceManufacturerData(
+                      result.advertisementData.manufacturerData) ??
+                  'N/A'),
+          _buildAdvRow(
+              context,
+              'Service UUIDs',
+              (result.advertisementData.serviceUuids.isNotEmpty)
+                  ? result.advertisementData.serviceUuids
+                      .join(', ')
+                      .toUpperCase()
+                  : 'N/A'),
+          _buildAdvRow(
+              context,
+              'Service Data',
+              getNiceServiceData(result.advertisementData.serviceData) ??
+                  'N/A'),
         ],
       ),
     );
@@ -211,7 +239,8 @@ class CreateDialogBody extends StatelessWidget {
   TextEditingController passwordController;
   TextEditingController passwordValidateController;
 
-  CreateDialogBody(this.nameController, this.passwordController, this.passwordValidateController);
+  CreateDialogBody(this.nameController, this.passwordController,
+      this.passwordValidateController);
 
   @override
   Widget build(BuildContext context) {
@@ -220,23 +249,19 @@ class CreateDialogBody extends StatelessWidget {
       children: <Widget>[
         TextField(
             controller: nameController,
-            decoration: InputDecoration(hintText: "Custom name for device")
-        ),
+            decoration: InputDecoration(hintText: "Custom name for device")),
         TextField(
             obscureText: true,
             controller: passwordController,
-            decoration: InputDecoration(hintText: "Password for device")
-        ),
+            decoration: InputDecoration(hintText: "Password for device")),
         TextField(
             obscureText: true,
             controller: passwordValidateController,
-            decoration: InputDecoration(hintText: "Re-enter password")
-        )
+            decoration: InputDecoration(hintText: "Re-enter password"))
       ],
     );
   }
 }
-
 
 class ServiceTile extends StatelessWidget {
   final BluetoothService service;
@@ -281,13 +306,20 @@ class CharacteristicTile extends StatelessWidget {
   final VoidCallback onWritePressed;
   final VoidCallback onNotificationPressed;
 
+  final BluetoothDevice device;
+  final bool isUpdatable;
+  final VoidCallback refreshCallback;
+
   const CharacteristicTile(
       {Key key,
-        this.characteristic,
-        this.descriptorTiles,
-        this.onReadPressed,
-        this.onWritePressed,
-        this.onNotificationPressed})
+      this.device,
+      this.isUpdatable,
+      this.refreshCallback,
+      this.characteristic,
+      this.descriptorTiles,
+      this.onReadPressed,
+      this.onWritePressed,
+      this.onNotificationPressed})
       : super(key: key);
 
   @override
@@ -331,21 +363,114 @@ class CharacteristicTile extends StatelessWidget {
     );
 
     if (descriptorTiles.length > 0) {
-      return new ExpansionTile(
+      return gestureListenerWidget(new ExpansionTile(
         title: new ListTile(
           title: title,
           subtitle: new Text(characteristic.value.toString()),
         ),
         trailing: actions,
         children: descriptorTiles,
-      );
+      ), context);
     } else {
-      return new ListTile(
+      return gestureListenerWidget(new ListTile(
         title: title,
         subtitle: new Text(characteristic.value.toString()),
         trailing: actions,
-      );
+      ), context);
     }
+  }
+
+  Widget gestureListenerWidget(Widget child, BuildContext context) {
+    return GestureDetector(
+      onLongPress: () {
+        showDialog(
+            context: context,
+            builder: (BuildContext _) {
+              var nameController = TextEditingController();
+              var passwordController = TextEditingController();
+              var passwordValidateController = TextEditingController();
+
+              return AlertDialog(
+                title: Text("Save Custom Name"),
+                content: CreateDialogBody(nameController, passwordController,
+                    passwordValidateController),
+                actions: <Widget>[
+                  if (isUpdatable)
+                    FlatButton(
+                      child: const Text('DELETE'),
+                      onPressed: () async {
+                        var helper = AppDatabaseHelper();
+                        var msg = await helper.removeResult(device);
+
+                        scaffoldKey.currentState.showSnackBar(SnackBar(
+                          content: Text(msg),
+                          duration: Duration(seconds: 5),
+                        ));
+
+                        Timer(Duration(seconds: 5), () {
+                          scaffoldKey.currentState.removeCurrentSnackBar();
+                        });
+
+                        refreshCallback();
+
+                        Navigator.of(_).pop();
+                      },
+                    ),
+                  FlatButton(
+                      child: const Text('ACCEPT'),
+                      onPressed: () async {
+                        var helper = AppDatabaseHelper();
+                        if (nameController.text.isEmpty ||
+                            passwordController.text.isEmpty ||
+                            passwordValidateController.text.isEmpty) {
+                          scaffoldKey.currentState.showSnackBar(SnackBar(
+                              duration: Duration(milliseconds: 5),
+                              content: Text("All fields are required")));
+                          Timer(Duration(seconds: 5), () {
+                            scaffoldKey.currentState.removeCurrentSnackBar();
+                          });
+
+                          return;
+                        } else if (passwordController.text !=
+                            passwordValidateController.text) {
+                          scaffoldKey.currentState.showSnackBar(SnackBar(
+                              duration: Duration(milliseconds: 5),
+                              content: Text("Password fields do not match")));
+                          Timer(Duration(seconds: 5), () {
+                            scaffoldKey.currentState.removeCurrentSnackBar();
+                          });
+
+                          return;
+                        }
+
+                        var msg;
+                        if (!isUpdatable) {
+                          msg = await helper.saveDevice(device,
+                              nameController.text, passwordController.text);
+                        } else {
+                          msg = await helper.updateDevice(device,
+                              nameController.text, passwordController.text);
+                        }
+
+                        scaffoldKey.currentState.showSnackBar(SnackBar(
+                          content: Text(msg),
+                          duration: Duration(seconds: 5),
+                        ));
+
+                        Timer(Duration(seconds: 5), () {
+                          scaffoldKey.currentState.removeCurrentSnackBar();
+                        });
+                        refreshCallback();
+                        if (!msg.contains("Error")) {
+                          Navigator.of(_).pop();
+                        }
+                      })
+                ],
+              );
+            });
+      },
+      child: child,
+    );
   }
 }
 
