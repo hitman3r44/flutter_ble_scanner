@@ -531,40 +531,83 @@ class PasswordScreen extends StatefulWidget {
 }
 
 class _PasswordScreenState extends State<PasswordScreen> {
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
-          TextField(
-            decoration: new InputDecoration.collapsed(
-                hintText: 'Custom Name'
-            ),
-          ),
-          TextField(
-            obscureText: true,
-            decoration: new InputDecoration.collapsed(
-                hintText: 'Password'
-            ),
-          ),
-          TextField(
-            obscureText: true,
-            decoration: new InputDecoration.collapsed(
-                hintText: 'Re-enter Password'
-            ),
-          ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              RaisedButton(
-                child: new Text("DELETE"),
-
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              decoration: InputDecoration.collapsed(
+                  hintText: 'Custom Name'
               ),
-              RaisedButton(
-                child: new Text("SUBMIT"),
-              )
-            ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              obscureText: true,
+              decoration: InputDecoration.collapsed(
+                  hintText: 'Password'
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              obscureText: true,
+              decoration: InputDecoration.collapsed(
+                  hintText: 'Re-enter Password'
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: RaisedButton(
+                    child: Text("DELETE"),
+                    onPressed: () {
+
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: RaisedButton(
+                    child: Text("SUBMIT"),
+                    onPressed: () {
+
+                    }
+                  ),
+                )
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: <Widget>[
+                Expanded(child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: CircularToggleButton("Open", Colors.greenAccent, null),
+                )),
+                Expanded(child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: CircularToggleButton("Close", Colors.yellowAccent, null),
+                )),
+                Expanded(child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: CircularToggleButton("Stop", Colors.redAccent, null),
+                )),
+              ],
+            ),
           )
         ]
       ),
