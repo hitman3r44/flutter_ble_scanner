@@ -16,6 +16,10 @@ class ScanResultTile extends StatelessWidget {
   final List<DeviceContainer> devices;
   var _isPresent;
 
+  var nameController = TextEditingController();
+  var passwordController = TextEditingController();
+  var passwordValidateController = TextEditingController();
+
   String _getTitle() {
     var index = devices
         .indexWhere((container) => container.id == result.device.id.toString());
@@ -112,10 +116,6 @@ class ScanResultTile extends StatelessWidget {
         showDialog(
             context: context,
             builder: (BuildContext _) {
-              var nameController = TextEditingController();
-              var passwordController = TextEditingController();
-              var passwordValidateController = TextEditingController();
-
               return AlertDialog(
                 title: Text("Save Custom Name"),
                 content: CreateDialogBody(nameController, passwordController,
@@ -199,10 +199,138 @@ class ScanResultTile extends StatelessWidget {
         title: _buildTitle(context),
         leading: Text(result.rssi.toString()),
         trailing: RaisedButton(
-          child: Text('CONNECT'),
+          child: Text(_isUpdatable() ? 'EDIT' : 'CONNECT'),
           color: Colors.black,
           textColor: Colors.white,
-          onPressed: (result.advertisementData.connectable) ? onTap : null,
+          onPressed: (result.advertisementData.connectable)
+              ? () {
+                  if (_isUpdatable()) {
+                    showDialog(
+                        context: context,
+                        builder: (BuildContext _) {
+                          return AlertDialog(
+                            title: Text("Give password"),
+                            content: TextField(
+                              controller: passwordController,
+                              obscureText: true,
+                            ),
+                            actions: <Widget>[
+                              FlatButton(
+                                child: Text("Validate"),
+                                onPressed: () async {
+                                  AppDatabaseHelper helper =
+                                      AppDatabaseHelper();
+                                  if (await helper.validatePassword(
+                                      result.device, passwordController.text)) {
+                                    Navigator.of(_).pop();
+
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) => PasswordScreen(
+                                              result,
+                                              <Widget>[
+                                                _buildAdvRow(
+                                                    context,
+                                                    'Complete Local Name',
+                                                    result.advertisementData
+                                                            .localName ??
+                                                        'N/A'),
+                                                _buildAdvRow(
+                                                    context,
+                                                    'Tx Power Level',
+                                                    '${result.advertisementData.txPowerLevel ?? 'N/A'}'),
+                                                _buildAdvRow(
+                                                    context,
+                                                    'Manufacturer Data',
+                                                    getNiceManufacturerData(result
+                                                            .advertisementData
+                                                            .manufacturerData) ??
+                                                        'N/A'),
+                                                _buildAdvRow(
+                                                    context,
+                                                    'Service UUIDs',
+                                                    (result
+                                                            .advertisementData
+                                                            .serviceUuids
+                                                            .isNotEmpty)
+                                                        ? result
+                                                            .advertisementData
+                                                            .serviceUuids
+                                                            .join(', ')
+                                                            .toUpperCase()
+                                                        : 'N/A'),
+                                                _buildAdvRow(
+                                                    context,
+                                                    'Service Data',
+                                                    getNiceServiceData(result
+                                                            .advertisementData
+                                                            .serviceData) ??
+                                                        'N/A'),
+                                              ],
+                                              _isUpdatable(),
+                                              refresh)),
+                                    );
+                                  } else {
+                                    scaffoldKey.currentState
+                                        .showSnackBar(SnackBar(
+                                      content: Text("Password Invalid"),
+                                      duration: Duration(seconds: 5),
+                                    ));
+
+                                    Timer(Duration(seconds: 5), () {
+                                      scaffoldKey.currentState
+                                          .removeCurrentSnackBar();
+                                    });
+                                  }
+                                },
+                              )
+                            ],
+                          );
+                        });
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => PasswordScreen(
+                              result,
+                              <Widget>[
+                                _buildAdvRow(
+                                    context,
+                                    'Complete Local Name',
+                                    result.advertisementData.localName ??
+                                        'N/A'),
+                                _buildAdvRow(context, 'Tx Power Level',
+                                    '${result.advertisementData.txPowerLevel ?? 'N/A'}'),
+                                _buildAdvRow(
+                                    context,
+                                    'Manufacturer Data',
+                                    getNiceManufacturerData(result
+                                            .advertisementData
+                                            .manufacturerData) ??
+                                        'N/A'),
+                                _buildAdvRow(
+                                    context,
+                                    'Service UUIDs',
+                                    (result.advertisementData.serviceUuids
+                                            .isNotEmpty)
+                                        ? result.advertisementData.serviceUuids
+                                            .join(', ')
+                                            .toUpperCase()
+                                        : 'N/A'),
+                                _buildAdvRow(
+                                    context,
+                                    'Service Data',
+                                    getNiceServiceData(result
+                                            .advertisementData.serviceData) ??
+                                        'N/A'),
+                              ],
+                              _isUpdatable(),
+                              refresh)),
+                    );
+                  }
+                }
+              : null,
         ),
         children: <Widget>[
           _buildAdvRow(context, 'Complete Local Name',
@@ -363,20 +491,24 @@ class CharacteristicTile extends StatelessWidget {
     );
 
     if (descriptorTiles.length > 0) {
-      return gestureListenerWidget(new ExpansionTile(
-        title: new ListTile(
-          title: title,
-          subtitle: new Text(characteristic.value.toString()),
-        ),
-        trailing: actions,
-        children: descriptorTiles,
-      ), context);
+      return gestureListenerWidget(
+          new ExpansionTile(
+            title: new ListTile(
+              title: title,
+              subtitle: new Text(characteristic.value.toString()),
+            ),
+            trailing: actions,
+            children: descriptorTiles,
+          ),
+          context);
     } else {
-      return gestureListenerWidget(new ListTile(
-        title: title,
-        subtitle: new Text(characteristic.value.toString()),
-        trailing: actions,
-      ), context);
+      return gestureListenerWidget(
+          new ListTile(
+            title: title,
+            subtitle: new Text(characteristic.value.toString()),
+            trailing: actions,
+          ),
+          context);
     }
   }
 
@@ -522,5 +654,231 @@ class DescriptorTile extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class PasswordScreen extends StatefulWidget {
+  ScanResult _result;
+  List<Widget> _list;
+  bool _isUpdatable;
+  VoidCallback _refresh;
+
+  PasswordScreen(this._result, this._list, this._isUpdatable, this._refresh);
+
+  @override
+  _PasswordScreenState createState() =>
+      _PasswordScreenState(_result, _list, _isUpdatable, _refresh);
+}
+
+final passwordScreenScaffoldKey = GlobalKey<ScaffoldState>();
+
+class _PasswordScreenState extends State<PasswordScreen> {
+  ScanResult _result;
+  List<Widget> _list;
+  bool _isUpdatable;
+  VoidCallback _refresh;
+
+  var nameController = TextEditingController();
+  var passwordController = TextEditingController();
+  var passwordValidateController = TextEditingController();
+
+  _PasswordScreenState(
+      this._result, this._list, this._isUpdatable, this._refresh);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      key: passwordScreenScaffoldKey,
+      appBar: AppBar(
+        title: Text("Save Device"),
+      ),
+      body: SingleChildScrollView(
+        child: Column(children: <Widget>[
+          ..._list,
+          Container(
+            height: 20,
+          ),
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: TextField(
+                controller: nameController,
+                decoration: InputDecoration.collapsed(hintText: 'Custom Name'),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: InputDecoration.collapsed(hintText: 'Password'),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: passwordValidateController,
+              obscureText: true,
+              decoration:
+                  InputDecoration.collapsed(hintText: 'Re-enter Password'),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                if (_isUpdatable)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: RaisedButton(
+                      child: Text("DELETE"),
+                      onPressed: () async {
+                        var helper = AppDatabaseHelper();
+                        var msg = await helper.removeResult(_result.device);
+
+                        passwordScreenScaffoldKey.currentState.showSnackBar(SnackBar(
+                          content: Text(msg),
+                          duration: Duration(seconds: 5),
+                        ));
+
+                        _refresh();
+
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: RaisedButton(
+                      child: Text("SUBMIT"),
+                      onPressed: () async {
+                        var helper = AppDatabaseHelper();
+                        if (nameController.text.isEmpty ||
+                            passwordController.text.isEmpty ||
+                            passwordValidateController.text.isEmpty) {
+                          passwordScreenScaffoldKey.currentState.showSnackBar(
+                              SnackBar(
+                                  duration: Duration(seconds: 5),
+                                  content: Text("All fields are required")));
+
+                          return;
+                        } else if (passwordController.text !=
+                            passwordValidateController.text) {
+                          passwordScreenScaffoldKey.currentState.showSnackBar(
+                              SnackBar(
+                                  duration: Duration(seconds: 5),
+                                  content:
+                                      Text("Password fields do not match")));
+
+                          return;
+                        }
+
+                        var msg;
+                        if (!_isUpdatable) {
+                          msg = await helper.saveDevice(_result.device,
+                              nameController.text, passwordController.text);
+                        } else {
+                          msg = await helper.updateDevice(_result.device,
+                              nameController.text, passwordController.text);
+                        }
+
+                        passwordScreenScaffoldKey.currentState
+                            .showSnackBar(SnackBar(
+                          content: Text(msg),
+                          duration: Duration(seconds: 5),
+                        ));
+
+                        _refresh();
+
+                        if (!msg.contains("Error")) {
+                          Navigator.of(context).pop();
+                        }
+                      }),
+                )
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: <Widget>[
+                Expanded(
+                    child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: CircularToggleButton("Open", Colors.greenAccent, null),
+                )),
+                Expanded(
+                    child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child:
+                      CircularToggleButton("Close", Colors.yellowAccent, null),
+                )),
+                Expanded(
+                    child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: CircularToggleButton("Stop", Colors.redAccent, null),
+                )),
+              ],
+            ),
+          )
+        ]),
+      ),
+    );
+  }
+}
+
+class CircularToggleButton extends StatefulWidget {
+  String _text;
+  Color _toggleColor;
+  VoidCallback _optionalCallback;
+
+  CircularToggleButton(this._text, this._toggleColor, this._optionalCallback);
+
+  @override
+  _CircularToggleButtonState createState() =>
+      _CircularToggleButtonState(_text, _toggleColor, _optionalCallback);
+}
+
+class _CircularToggleButtonState extends State<CircularToggleButton> {
+  String _text;
+  Color _toggleColor;
+  VoidCallback _optionalCallback;
+
+  bool _isToggledOn = false;
+  final Color _defaultColor = Colors.grey;
+
+  _CircularToggleButtonState(
+      this._text, this._toggleColor, this._optionalCallback);
+
+  @override
+  void initState() {
+    super.initState();
+    _isToggledOn = false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+        child: GestureDetector(
+      onTap: () {
+        if (_optionalCallback != null) {
+          _optionalCallback();
+        }
+
+        setState(() {
+          _isToggledOn = !_isToggledOn;
+        });
+      },
+      child: ClipOval(
+        child: Container(
+          color: _isToggledOn ? _toggleColor : _defaultColor,
+          height: 120.0, // height of the button
+          width: 120.0, // width of the button
+          child: Center(child: Text(_text)),
+        ),
+      ),
+    ));
   }
 }

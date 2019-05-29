@@ -44,6 +44,14 @@ class AppDatabaseHelper {
     _populateDb(db, newVersion);
   }
 
+  Future<bool> validatePassword(BluetoothDevice device, String password) async {
+    Database database = await db;
+    var list = await database.rawQuery("SELECT * FROM BluetoothDevice "
+        "WHERE password = '$password'");
+
+    return Future(() => list.isNotEmpty);
+  }
+
   Future<String> saveDevice(BluetoothDevice device, String name, String password) async {
     var id = "${device.id.toString()}";
     Database database = await db;
@@ -99,12 +107,9 @@ class AppDatabaseHelper {
     var id = "${device.id.toString()}";
     Database database = await db;
     var list = await database.rawQuery("SELECT * FROM BluetoothDevice WHERE name = '$name'");
-    var passwordList = await database.rawQuery("SELECT * FROM BluetoothDevice WHERE id = '$id' AND password = '$password'");
 
     if (list.isNotEmpty) {
       return Future(() => "Error: Name already given to another device");
-    } else if (passwordList.isEmpty) {
-      return Future(() => "Error: Password for device does not match");
     }
 
     Map<String, String> map = Map();
