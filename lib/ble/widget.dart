@@ -703,7 +703,11 @@ class _PasswordScreenState extends State<PasswordScreen> {
               padding: const EdgeInsets.all(8.0),
               child: TextField(
                 controller: nameController,
-                decoration: InputDecoration.collapsed(hintText: 'Custom Name'),
+                decoration: InputDecoration(
+                  hasFloatingPlaceholder: true,
+                  labelText: "Give Custom Name for Device",
+                  border: OutlineInputBorder()
+                ),
               ),
             ),
           ),
@@ -712,7 +716,11 @@ class _PasswordScreenState extends State<PasswordScreen> {
             child: TextField(
               controller: passwordController,
               obscureText: true,
-              decoration: InputDecoration.collapsed(hintText: 'Password'),
+              decoration: InputDecoration(
+                  hasFloatingPlaceholder: true,
+                  labelText: "Give password for Device",
+                  border: OutlineInputBorder()
+              ),
             ),
           ),
           Padding(
@@ -720,8 +728,11 @@ class _PasswordScreenState extends State<PasswordScreen> {
             child: TextField(
               controller: passwordValidateController,
               obscureText: true,
-              decoration:
-                  InputDecoration.collapsed(hintText: 'Re-enter Password'),
+              decoration: InputDecoration(
+                  hasFloatingPlaceholder: true,
+                  labelText: "Re-enter password",
+                  border: OutlineInputBorder()
+              ),
             ),
           ),
           Padding(
